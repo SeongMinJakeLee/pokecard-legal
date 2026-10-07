@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
-import { useAuth } from "../src/auth/AuthProvider";
+import { AUTH_REDIRECT_URL, useAuth } from "../src/auth/AuthProvider";
 import { supabase } from "../src/lib/supabase";
 import { t } from "../src/i18n/ko";
 
@@ -37,7 +37,10 @@ export default function SignupScreen() {
     const { data, error: err } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: { data: { age_confirmed: "true", terms_agreed: "true", terms_version: TERMS_VERSION } },
+      options: {
+        emailRedirectTo: AUTH_REDIRECT_URL,
+        data: { age_confirmed: "true", terms_agreed: "true", terms_version: TERMS_VERSION },
+      },
     });
     setBusy(false);
     if (err) {

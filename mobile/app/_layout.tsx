@@ -17,6 +17,7 @@ export default function RootLayout() {
             <Stack.Screen name="filters" options={{ title: t.filters.title, presentation: "modal" }} />
             <Stack.Screen name="login" options={{ title: t.auth.login, presentation: "modal" }} />
             <Stack.Screen name="signup" options={{ title: t.auth.signup }} />
+            <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
           </Stack>
         </FilterProvider>
       </AuthProvider>
