@@ -5,7 +5,10 @@ export type OwnedFilter = "all" | "owned" | "unowned";
 
 export interface CardSummary {
   id: string;
+  /** English (source) name. */
   name: string;
+  /** Korean name when we have a confident translation, otherwise null (UI falls back to `name`). */
+  nameKo?: string | null;
   number: string | null;
   rarity: string | null;
   imageSmall: string | null;
@@ -13,6 +16,13 @@ export interface CardSummary {
   types: string[];
   owned?: boolean;
   wished?: boolean;
+}
+
+/** Primary + secondary label: Korean first when available, English kept as the secondary line. */
+export function cardTitles(card: Pick<CardSummary, "name" | "nameKo">): { title: string; subtitle: string | null } {
+  return card.nameKo && card.nameKo !== card.name
+    ? { title: card.nameKo, subtitle: card.name }
+    : { title: card.name, subtitle: null };
 }
 
 export interface CardDetail extends CardSummary {
@@ -121,6 +131,13 @@ export function listCards(query: CardQuery, cursor: string | null, limit = 30): 
 export const getCard = (id: string) => rpc<CardDetail>("get_card", { card_id: id });
 export const listSets = () => rpc<SetInfo[]>("list_sets");
 export const getFilters = () => rpc<Filters>("get_filters");
+export interface CollectionSummary {
+  totalOwned: number;
+  totalCards: number;
+  sets: { id: string; name: string; series: string | null; releaseDate: string | null; logo: string | null; symbol: string | null; owned: number; total: number }[];
+}
+export const getCollectionSummary = () => rpc<CollectionSummary>("get_collection_summary");
+
 export const listWishlist = (cursor: string | null, limit = 30) =>
   rpc<Page<CardSummary>>("list_wishlist", { lim: limit, page_cursor: cursor });
 

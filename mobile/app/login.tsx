@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { Link, router } from "expo-router";
 import { useAuth } from "../src/auth/AuthProvider";
 import { supabase } from "../src/lib/supabase";
+import { Button, Field, Icon } from "../src/components/ui";
 import { t } from "../src/i18n/ko";
+import { useTheme } from "../src/theme";
 
 export default function LoginScreen() {
+  const { c } = useTheme();
   const { session } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,30 +30,21 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.screen}>
-      <Text style={styles.info}>{t.auth.loginRequired}</Text>
-      <TextInput
-        value={email}
-        onChangeText={setEmail}
-        placeholder={t.auth.email}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        autoComplete="email"
-        style={styles.input}
-      />
-      <TextInput
-        value={password}
-        onChangeText={setPassword}
-        placeholder={t.auth.password}
-        secureTextEntry
-        autoComplete="password"
-        style={styles.input}
-      />
-      {error && <Text style={styles.error}>{error}</Text>}
-      <Pressable style={[styles.btn, (!email || !password) && styles.btnOff]} disabled={!email || !password || busy} onPress={submit}>
-        {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t.auth.login}</Text>}
-      </Pressable>
-      <Link href="/signup" style={styles.link}>
+    <View style={[styles.screen, { backgroundColor: c.bg }]}>
+      <View style={styles.hero}>
+        <View style={[styles.logo, { backgroundColor: c.primary }]}>
+          <Icon name="albums" size={30} color={c.onPrimary} />
+        </View>
+        <Text style={[styles.h, { color: c.text }]}>{t.auth.loginRequired}</Text>
+      </View>
+      <Field icon="mail-outline" value={email} onChangeText={setEmail} placeholder={t.auth.email} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
+      <Field icon="lock-closed-outline" value={password} onChangeText={setPassword} placeholder={t.auth.password} secureTextEntry autoComplete="password" />
+      {error && <Text style={{ color: c.danger }}>{error}</Text>}
+      <Button label={t.auth.login} onPress={submit} disabled={!email || !password || busy} />
+      <Link href="/forgot-password" style={[styles.link, { color: c.textMuted }]}>
+        {t.auth.forgot}
+      </Link>
+      <Link href="/signup" style={[styles.link, { color: c.primary, marginTop: 0 }]}>
         {t.auth.goSignup}
       </Link>
     </View>
@@ -58,12 +52,9 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, padding: 20, gap: 12, backgroundColor: "#fff" },
-  info: { color: "#555", marginBottom: 4 },
-  input: { borderWidth: 1, borderColor: "#d4d4d8", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
-  error: { color: "#dc2626" },
-  btn: { backgroundColor: "#2563eb", borderRadius: 10, paddingVertical: 12, alignItems: "center" },
-  btnOff: { opacity: 0.5 },
-  btnText: { color: "#fff", fontWeight: "700" },
-  link: { color: "#2563eb", textAlign: "center", marginTop: 8 },
+  screen: { flex: 1, padding: 20, gap: 12 },
+  hero: { alignItems: "center", gap: 12, paddingVertical: 20 },
+  logo: { width: 64, height: 64, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  h: { fontSize: 16, fontWeight: "700" },
+  link: { textAlign: "center", marginTop: 8, fontWeight: "600" },
 });

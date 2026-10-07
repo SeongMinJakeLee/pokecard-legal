@@ -3,7 +3,7 @@ import { router } from "expo-router";
 import * as Linking from "expo-linking";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
-import { setOwned, setWished } from "../api/cards";
+import { setOwned, setWished, type CardSummary } from "../api/cards";
 
 export type PendingAction = { type: "own" | "wish"; cardId: string; value: boolean };
 
@@ -15,16 +15,20 @@ interface AuthState {
   bumpData: () => void;
   /** Guests are redirected to login; the action is applied automatically after a successful login (FR-GATE-01). */
   requireLogin: (pending?: PendingAction) => void;
+  overrides: Record<string, Partial<CardSummary>>;
+  applyOverride: (id: string, change: Partial<CardSummary>) => void;
 }
 
 const Ctx = createContext<AuthState | null>(null);
 
 /** Where Supabase redirects after email confirmation. Must be in the project's Redirect URLs allow-list. */
 export const AUTH_REDIRECT_URL = "pokecard://auth/callback";
+/** Where the password-reset email link lands (shows the "set a new password" screen). */
+export const RESET_REDIRECT_URL = "pokecard://auth/reset";
 
 /** Reads tokens (implicit flow, in the #fragment) or a `code` (PKCE) from an auth deep link and stores the session. */
 async function completeSessionFromUrl(url: string): Promise<void> {
-  if (!url.startsWith("pokecard://auth/callback")) return;
+  if (!url.startsWith(AUTH_REDIRECT_URL) && !url.startsWith(RESET_REDIRECT_URL)) return;
   const hashIdx = url.indexOf("#");
   const queryIdx = url.indexOf("?");
   const parse = (s: string) => new URLSearchParams(s);
@@ -47,7 +51,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [dataVersion, setDataVersion] = useState(0);
   const pending = useRef<PendingAction | null>(null);
 
-  const bumpData = useCallback(() => setDataVersion((v) => v + 1), []);
+  const [overrides, setOverrides] = useState<Record<string, Partial<CardSummary>>>({});
+
+  const bumpData = useCallback(() => {
+    setOverrides({});
+    setDataVersion((v) => v + 1);
+  }, []);
+
+  /** Instant, list-wide ownership/wishlist state (no refetch, keeps scroll position). */
+  const applyOverride = useCallback((id: string, change: Partial<CardSummary>) => {
+    setOverrides((prev) => ({ ...prev, [id]: { ...prev[id], ...change } }));
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -63,14 +77,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const run = action.type === "own" ? setOwned : setWished;
           // Defer so the auth callback is not blocked by a network call.
           setTimeout(() => {
-            run(action.cardId, action.value).finally(() => setDataVersion((v) => v + 1));
+            run(action.cardId, action.value).finally(bumpData);
           }, 0);
         }
       }
-      setDataVersion((v) => v + 1);
+      // Token refreshes must not reset list state; only real login/logout changes user-specific data.
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT") bumpData();
     });
     return () => sub.subscription.unsubscribe();
-  }, []);
+  }, [bumpData]);
 
   // Email-confirmation / magic links open the app via the `pokecard://auth/callback` deep link.
   useEffect(() => {
@@ -88,8 +103,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ session, ready, dataVersion, bumpData, requireLogin }),
-    [session, ready, dataVersion, bumpData, requireLogin],
+    () => ({ session, ready, dataVersion, bumpData, requireLogin, overrides, applyOverride }),
+    [session, ready, dataVersion, bumpData, requireLogin, overrides, applyOverride],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

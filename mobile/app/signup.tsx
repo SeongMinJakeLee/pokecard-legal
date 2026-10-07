@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { AUTH_REDIRECT_URL, useAuth } from "../src/auth/AuthProvider";
 import { supabase } from "../src/lib/supabase";
+import { Button, Field, Icon } from "../src/components/ui";
 import { t } from "../src/i18n/ko";
+import { useTheme } from "../src/theme";
 
 const TERMS_VERSION = "v0"; // bump when the terms/privacy policy text is published
 
 export default function SignupScreen() {
+  const { c } = useTheme();
   const { session } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,53 +54,37 @@ export default function SignupScreen() {
   };
 
   return (
-    <View style={styles.screen}>
-      <TextInput
-        value={email}
-        onChangeText={setEmail}
-        placeholder={t.auth.email}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        autoComplete="email"
-        style={styles.input}
-      />
-      <TextInput
+    <View style={[styles.screen, { backgroundColor: c.bg }]}>
+      <Field icon="mail-outline" value={email} onChangeText={setEmail} placeholder={t.auth.email} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
+      <Field
+        icon="lock-closed-outline"
         value={password}
         onChangeText={setPassword}
         placeholder={`${t.auth.password} (${t.auth.passwordHint})`}
         secureTextEntry
         autoComplete="new-password"
-        style={styles.input}
       />
       <Check label={t.auth.ageConfirm} on={age} onPress={() => setAge((v) => !v)} />
       <Check label={t.auth.termsAgree} on={terms} onPress={() => setTerms((v) => !v)} />
-      {under14 && <Text style={styles.error}>{t.auth.under14}</Text>}
-      {error && <Text style={styles.error}>{error}</Text>}
-      {notice && <Text style={styles.notice}>{notice}</Text>}
-      <Pressable style={[styles.btn, !valid && styles.btnOff]} disabled={!valid || busy} onPress={submit}>
-        {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t.auth.signup}</Text>}
-      </Pressable>
+      {under14 && <Text style={{ color: c.danger }}>{t.auth.under14}</Text>}
+      {error && <Text style={{ color: c.danger }}>{error}</Text>}
+      {notice && <Text style={{ color: c.owned }}>{notice}</Text>}
+      <Button label={t.auth.signup} onPress={submit} disabled={!valid || busy} />
     </View>
   );
 }
 
 function Check({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
+  const { c } = useTheme();
   return (
     <Pressable onPress={onPress} style={styles.check} accessibilityRole="checkbox" accessibilityState={{ checked: on }}>
-      <Text style={styles.box}>{on ? "☑" : "☐"}</Text>
-      <Text style={{ flex: 1 }}>{label}</Text>
+      <Icon name={on ? "checkbox" : "square-outline"} size={24} color={on ? c.primary : c.textMuted} />
+      <Text style={{ flex: 1, color: c.text }}>{label}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, padding: 20, gap: 12, backgroundColor: "#fff" },
-  input: { borderWidth: 1, borderColor: "#d4d4d8", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
-  check: { flexDirection: "row", alignItems: "center", gap: 8 },
-  box: { fontSize: 22 },
-  error: { color: "#dc2626" },
-  notice: { color: "#16a34a" },
-  btn: { backgroundColor: "#2563eb", borderRadius: 10, paddingVertical: 12, alignItems: "center" },
-  btnOff: { opacity: 0.5 },
-  btnText: { color: "#fff", fontWeight: "700" },
+  screen: { flex: 1, padding: 20, gap: 12 },
+  check: { flexDirection: "row", alignItems: "center", gap: 10 },
 });

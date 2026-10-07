@@ -51,3 +51,25 @@ npx expo prebuild --platform android --no-install   # android/ 재생성이 필�
 - `delete-account` Edge Function (계정 삭제, 스토어 요건).
 - 커스텀 SMTP, 약관/개인정보처리방침 문서와 링크, 앱 아이콘/스토어 자산.
 - 단위/통합 테스트 자동화 (doc 08), 크래시/분석 도구 결정 (DEC-15).
+
+
+## 13. 한국어 카드 이름 / 비밀번호 재설정 / 세트 탭 (추가 구현)
+
+### 한국어 이름 (`cards.name_ko`)
+- 원본(영문) 카탈로그는 그대로 두고 `name_ko`를 **파생 컬럼**으로 둔다. `before insert/update` 트리거(`ko_card_name`)가 계산하므로 동기화(sync-catalog) 때도 자동 반영된다.
+- 변환 순서: ① `ko_name_overrides`(운영자 수작업/공식 목록 검증) → ② 포켓몬 카드: `pokemon_species`(PokeAPI 한/영 종명) + `ko_name_modifiers`(알로라/가라르/히스이/로켓단의/메가 …)로 조합. 번역 근거가 없으면 `NULL`.
+- `NULL`이면 앱은 영문명을 그대로 표시(`cardTitles()`). 한국어가 있으면 한국어를 제목, 영문을 보조 줄로 표시. 검색은 한/영 모두(`name ilike or name_ko ilike`).
+- 데이터 적재: Edge Function `sync-species`(x-sync-token 필요) → PokeAPI CSV 로드 후 `recompute_card_names_ko()` 실행.
+- 커버리지(적용 직후): 포켓몬 99.9%, 에너지 54.1%(기본 에너지 확정), 트레이너스 0% → 전체 85.4%.
+- 남은 항목 처리 방침: 영문 병기 유지 → 기본/특수 에너지(약 100종) 수작업 → 트레이너스(1,380종)는 인쇄 빈도순으로 공식 한글명 목록과 대조하여 `ko_name_overrides`에 추가. 번역이 없는 카드는 영어로 보인다(오역 방지).
+- 주의: 트레이너/체육관 관장 접두어(이슬/웅/마티스/민화/초련/강연/비주기/독수)는 공식 표기와 대조 전이므로 출시 전 검증 필요.
+
+### 비밀번호
+- 로그인 화면 "비밀번호를 잊으셨나요?" → `resetPasswordForEmail(email, { redirectTo: pokecard://auth/reset })`. 응답은 가입 여부와 무관하게 동일(계정 존재 노출 방지).
+- 메일 링크 → 딥링크 → `AuthProvider`가 토큰으로 세션 생성 → `/auth/reset`에서 새 비밀번호 설정(`updateUser({password})`).
+- "내 정보" 탭에 "비밀번호 변경" 추가(`/change-password`).
+- **대시보드 설정 필요**: Authentication → URL Configuration → Redirect URLs에 `pokecard://**` 추가.
+
+### 세트 탭 / 컬렉션
+- 새 "세트" 탭: 시리즈별 세트 로고 그리드, 로그인 시 세트별 진행률. 세트를 누르면 해당 세트 카드 목록으로 이동.
+- 컬렉션 상단에 원형 진행 그래프(`ProgressRing`, 네이티브 의존성 없음).
