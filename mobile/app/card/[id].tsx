@@ -2,12 +2,14 @@ import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { Stack, useLocalSearchParams } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, getCard, setOwned, setWished, type CardDetail } from "../../src/api/cards";
 import { useAuth } from "../../src/auth/AuthProvider";
 import { t } from "../../src/i18n/ko";
 
 export default function CardDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const insets = useSafeAreaInsets();
   const { session, dataVersion, requireLogin, bumpData } = useAuth();
   const [card, setCard] = useState<CardDetail | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
@@ -67,7 +69,8 @@ export default function CardDetailScreen() {
 
   const d = card.details;
   return (
-    <ScrollView contentContainerStyle={styles.body}>
+    // Android edge-to-edge: pad the bottom by the system navigation bar height so the last rows are not covered.
+    <ScrollView contentContainerStyle={[styles.body, { paddingBottom: 24 + insets.bottom }]}>
       <Stack.Screen options={{ title: card.name }} />
       <Image
         source={card.imageLarge ? { uri: card.imageLarge } : card.imageSmall ? { uri: card.imageSmall } : undefined}

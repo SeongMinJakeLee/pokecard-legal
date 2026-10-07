@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getFilters, listSets, type Filters, type SetInfo } from "../src/api/cards";
 import { useFilters } from "../src/state/filters";
 import { t } from "../src/i18n/ko";
@@ -9,6 +10,7 @@ const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x
 
 export default function FiltersScreen() {
   const { query, setQuery } = useFilters();
+  const insets = useSafeAreaInsets();
   const [filters, setFilters] = useState<Filters | null>(null);
   const [sets, setSets] = useState<SetInfo[]>([]);
   const [failed, setFailed] = useState(false);
@@ -79,7 +81,7 @@ export default function FiltersScreen() {
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>
+        <View style={[styles.footer, { paddingBottom: 12 + insets.bottom }]}>
         <Pressable
           style={[styles.footBtn, styles.footGhost]}
           onPress={() => {
